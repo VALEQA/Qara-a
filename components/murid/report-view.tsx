@@ -82,14 +82,14 @@ export function ReportView({ userId, userName }: { userId: string; userName: str
     }
 
     reportContent += `DETAILED EVALUATIONS\n${"-".repeat(60)}\n\n`
-    evaluations.forEach((eval, index) => {
+    evaluations.forEach((ev, index) => {
       reportContent += `Evaluation ${index + 1}\n`
-      reportContent += `Date: ${new Date(eval.session?.session_date).toLocaleDateString()}\n`
-      reportContent += `Hafalan: ${eval.hafalan_level}\n`
-      reportContent += `Tajweed: ${eval.tajweed_level}\n`
-      reportContent += `Tartil: ${eval.tartil_level}\n`
-      if (eval.additional_notes) {
-        reportContent += `Notes: ${eval.additional_notes}\n`
+      reportContent += `Date: ${new Date(ev.session?.session_date).toLocaleDateString()}\n`
+      reportContent += `Hafalan: ${ev.hafalan_level}\n`
+      reportContent += `Tajweed: ${ev.tajweed_level}\n`
+      reportContent += `Tartil: ${ev.tartil_level}\n`
+      if (ev.additional_notes) {
+        reportContent += `Notes: ${ev.additional_notes}\n`
       }
       reportContent += `\n`
     })
@@ -178,8 +178,12 @@ export function ReportView({ userId, userName }: { userId: string; userName: str
                   <div key={evaluation.id} className="p-4 border border-border rounded">
                     <div className="flex justify-between items-start mb-3">
                       <p className="font-semibold">Evaluation {evaluations.length - index}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(evaluation.session?.session_date).toLocaleDateString()}
+                      <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                        {new Date(evaluation.session?.session_date || evaluation.created_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })}
                       </p>
                     </div>
 

@@ -54,7 +54,7 @@ async function seedGamificationData() {
         return
     }
     const studentId = enrollment.user_id
-    const studentName = enrollment.user?.full_name
+    const studentName = (enrollment.user as any)?.full_name
     console.log(`✅ Student Found: ${studentName} (${studentId})`)
 
     // 3.5 Get a Valid Template

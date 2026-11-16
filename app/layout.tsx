@@ -17,24 +17,24 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Mutabaah Online - Learning Management System",
+  title: "Qara-a | Platform Manajemen Lembaga Tahfidz & Al-Qur'an",
   description:
-    "Professional Learning Management System for Tahfidz Al-Qur'an Institutions. Manage student evaluations, track attendance, and generate official reports.",
-  keywords: ["tahfidz", "lms", "education", "evaluation", "mutabaah", "quran"],
-  authors: [{ name: "Mutabaah Online" }],
-  creator: "Mutabaah Online",
+    "Sistem manajemen terpadu untuk institusi Tahfidz Al-Qur'an modern. Kelola setoran hafalan (Tajwid/Tartil), absensi santri, gamifikasi, dan cetak rapor resmi.",
+  keywords: ["tahfidz", "quran", "qara-a", "lms", "mutabaah", "hafalan"],
+  authors: [{ name: "Qara-a Tahfidz" }],
+  creator: "Qara-a",
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://mutabaah.vercel.app",
-    siteName: "Mutabaah Online",
-    title: "Mutabaah Online - Learning Management System",
-    description: "Professional Learning Management System for Tahfidz Institutions",
+    url: "https://qara-a.vercel.app",
+    siteName: "Qara-a Tahfidz",
+    title: "Qara-a | Platform Manajemen Lembaga Tahfidz & Al-Qur'an",
+    description: "Sistem Manajemen Pembelajaran & Mutabaah Tahfidz Al-Qur'an Terpadu",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mutabaah Online",
-    description: "Professional Learning Management System for Tahfidz Institutions",
+    title: "Qara-a Tahfidz",
+    description: "Platform Manajemen Lembaga Tahfidz & Al-Qur'an Modern",
   },
 
   icons: {

@@ -15,66 +15,71 @@ export function DashboardCharts() {
     ]
 
     const userRoleData = [
-        { name: "Santri", value: 450, color: "var(--color-primary)" },
-        { name: "Ustadz", value: 32, color: "var(--color-chart-2)" },
-        { name: "Admin", value: 5, color: "var(--color-chart-3)" },
+        { name: "Santri", value: 450, color: "#059669" },
+        { name: "Asatidz / Guru", value: 32, color: "#0d9488" },
+        { name: "Admin", value: 5, color: "#f59e0b" },
     ]
 
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
+            <Card className="col-span-4 border-border/80 shadow-xs">
                 <CardHeader>
-                    <CardTitle>Statistik Pendaftaran</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-base font-bold text-foreground">Statistik Pendaftaran</CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
                         Santri baru terdaftar per bulan (6 bulan terakhir)
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={320}>
                         <BarChart data={registrationData}>
                             <XAxis
                                 dataKey="name"
-                                stroke="#888888"
-                                fontSize={12}
+                                stroke="#64748b"
+                                fontSize={11}
                                 tickLine={false}
                                 axisLine={false}
                             />
                             <YAxis
-                                stroke="#888888"
-                                fontSize={12}
+                                stroke="#64748b"
+                                fontSize={11}
                                 tickLine={false}
                                 axisLine={false}
                                 tickFormatter={(value) => `${value}`}
                             />
                             <Tooltip
-                                cursor={{ fill: 'transparent' }}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                cursor={{ fill: 'rgba(5, 150, 105, 0.05)' }}
+                                contentStyle={{
+                                    borderRadius: '10px',
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 8px 20px -4px rgba(0,0,0,0.1)',
+                                    fontSize: '12px'
+                                }}
                             />
                             <Bar
                                 dataKey="total"
-                                fill="var(--color-primary)" /* Uses CSS variable from globals.css */
-                                radius={[4, 4, 0, 0]}
+                                fill="#059669"
+                                radius={[6, 6, 0, 0]}
                             />
                         </BarChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
 
-            <Card className="col-span-3">
+            <Card className="col-span-3 border-border/80 shadow-xs">
                 <CardHeader>
-                    <CardTitle>Sebaran Pengguna</CardTitle>
-                    <CardDescription>
-                        Pengguna aktif berdasarkan peran
+                    <CardTitle className="text-base font-bold text-foreground">Sebaran Pengguna</CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                        Komposisi pengguna aktif berdasarkan peran
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
                             <Pie
                                 data={userRoleData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={60}
+                                innerRadius={55}
                                 outerRadius={80}
                                 paddingAngle={5}
                                 dataKey="value"
@@ -83,14 +88,21 @@ export function DashboardCharts() {
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
-                            <Tooltip />
+                            <Tooltip
+                                contentStyle={{
+                                    borderRadius: '10px',
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 8px 20px -4px rgba(0,0,0,0.1)',
+                                    fontSize: '12px'
+                                }}
+                            />
                         </PieChart>
                     </ResponsiveContainer>
-                    <div className="mt-4 flex justify-center gap-4 text-sm">
+                    <div className="mt-3 flex justify-center gap-4 text-xs">
                         {userRoleData.map((item, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                <span className="text-muted-foreground">{item.name}</span>
+                            <div key={index} className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                <span className="text-muted-foreground font-medium">{item.name}</span>
                             </div>
                         ))}
                     </div>

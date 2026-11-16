@@ -127,34 +127,48 @@ export function EvaluationView({ userId }: { userId: string }) {
           </Card>
         ) : (
           filteredEvaluations.map((evaluation) => (
-            <Card key={evaluation.id}>
+            <Card key={evaluation.id} className="border-border/80 shadow-xs hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-base">{evaluation.guru?.full_name || "Guru Tidak Dikenal"}</CardTitle>
-                    <CardDescription>{new Date(evaluation.session?.session_date).toLocaleDateString("id-ID")}</CardDescription>
+                    <CardTitle className="text-base font-bold text-foreground">
+                      {evaluation.surah_name ? `Surah ${evaluation.surah_name}` : "Setoran Hafalan"}
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
+                      {new Date(evaluation.session?.session_date || evaluation.created_at).toLocaleDateString("id-ID", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })} • Penguji: {evaluation.guru?.full_name || "Ustaz Pembimbing"}
+                    </CardDescription>
                   </div>
+                  {evaluation.verses_count ? (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200">
+                      {evaluation.verses_count} Ayat
+                    </span>
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-muted rounded">
-                    <p className="text-xs text-muted-foreground mb-1">Hafalan</p>
-                    <p className="font-medium capitalize text-sm">{evaluation.hafalan_level?.replace(/_/g, " ")}</p>
+                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Kelancaran</p>
+                    <p className="font-bold capitalize text-sm text-foreground">{evaluation.hafalan_level?.replace(/_/g, " ")}</p>
                   </div>
-                  <div className="p-3 bg-muted rounded">
-                    <p className="text-xs text-muted-foreground mb-1">Tajwid</p>
-                    <p className="font-medium capitalize text-sm">{evaluation.tajweed_level?.replace(/_/g, " ")}</p>
+                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tajwid</p>
+                    <p className="font-bold capitalize text-sm text-foreground">{evaluation.tajweed_level?.replace(/_/g, " ")}</p>
                   </div>
-                  <div className="p-3 bg-muted rounded">
-                    <p className="text-xs text-muted-foreground mb-1">Tartil</p>
-                    <p className="font-medium capitalize text-sm">{evaluation.tartil_level?.replace(/_/g, " ")}</p>
+                  <div className="p-3 bg-muted/50 rounded-xl border border-border/50">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tartil</p>
+                    <p className="font-bold capitalize text-sm text-foreground">{evaluation.tartil_level?.replace(/_/g, " ")}</p>
                   </div>
                 </div>
                 {evaluation.additional_notes && (
-                  <div className="p-3 border rounded text-sm bg-background">
-                    <p className="text-muted-foreground mb-1 text-xs">Catatan:</p>
-                    {evaluation.additional_notes}
+                  <div className="p-3 border rounded-xl text-xs text-muted-foreground bg-muted/30 italic">
+                    <span className="font-semibold text-foreground not-italic mr-1">Catatan Ustaz:</span>
+                    "{evaluation.additional_notes}"
                   </div>
                 )}
               </CardContent>

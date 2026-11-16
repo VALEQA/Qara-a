@@ -91,8 +91,8 @@ export function BadgeCard({ badge, earnedAt, isLocked = false }: BadgeCardProps)
                 <div className="h-1.5 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div className={`h-full w-full ${colors.text.replace('text-', 'bg-')}`}></div>
                 </div>
-                <span className={`text-[10px] font-bold ${colors.text}`}>
-                    {earnedAt ? new Date(earnedAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: '2-digit' }) : "UNLOCKED"}
+                <span className={`text-[10px] font-bold ${colors.text}`} suppressHydrationWarning>
+                    {earnedAt ? new Date(earnedAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' }) : "UNLOCKED"}
                 </span>
             </div>
         </div>

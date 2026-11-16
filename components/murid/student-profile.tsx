@@ -108,7 +108,9 @@ export function StudentProfile({ userData }: { userData: any }) {
           </div>
           <div className="flex justify-between">
             <p className="text-sm text-muted-foreground">Bergabung Sejak</p>
-            <p className="font-semibold">{new Date(userData.created_at).toLocaleDateString()}</p>
+            <p className="font-semibold" suppressHydrationWarning>
+              {new Date(userData.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
           </div>
         </CardContent>
       </Card>

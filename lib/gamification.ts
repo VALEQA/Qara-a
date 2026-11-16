@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export type Badge = {
   id: string
@@ -19,7 +20,7 @@ export type UserBadge = {
 }
 
 export async function checkBadges(userId: string) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // 1. Fetch current stats & history
   const { data: evaluations } = await supabase
@@ -126,20 +127,18 @@ export async function checkBadges(userId: string) {
 }
 
 export async function getEarnedBadges(userId: string): Promise<UserBadge[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from("user_badges")
     .select("*, badge:badges(*)")
     .eq("user_id", userId)
     .order("awarded_at", { ascending: false })
 
-  // Transform to match type if needed, but Supabase response usually matches if typed correctly or we trust it.
-  // Casting for simplicity in this generated file
   return (data || []) as UserBadge[]
 }
 
 export async function getAllBadges(): Promise<Badge[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from("badges")
     .select("*")

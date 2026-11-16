@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { TrendingUp } from "lucide-react"
 
 const LEVEL_MAP: Record<string, number> = {
     "hafal_sangat_lancar": 4,
@@ -51,10 +52,15 @@ export function StudentProgressChart({ userId }: { userId: string }) {
     if (data.length < 2) return null
 
     return (
-        <Card className="col-span-1 lg:col-span-2">
-            <CardHeader>
-                <CardTitle className="text-lg">Tren Kemajuan Hafalan</CardTitle>
-                <CardDescription>Grafik perkembangan 10 sesi terakhir</CardDescription>
+        <Card className="col-span-1 lg:col-span-2 border-border/80 shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                    <CardTitle className="text-base font-bold text-foreground">Tren Kemajuan Hafalan</CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">Grafik kualitas hafalan pada 10 sesi terakhir</CardDescription>
+                </div>
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="w-4 h-4" />
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full pt-4">
@@ -62,15 +68,15 @@ export function StudentProgressChart({ userId }: { userId: string }) {
                         <AreaChart data={data}>
                             <defs>
                                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#059669" stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor="#059669" stopOpacity={0.02} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.6} />
                             <XAxis
                                 dataKey="date"
-                                stroke="#888888"
-                                fontSize={10}
+                                stroke="#64748b"
+                                fontSize={11}
                                 tickLine={false}
                                 axisLine={false}
                             />
@@ -78,16 +84,17 @@ export function StudentProgressChart({ userId }: { userId: string }) {
                                 domain={[0, 4]}
                                 ticks={[1, 2, 3, 4]}
                                 tickFormatter={(val) => LEVEL_LABELS[val] || ""}
-                                stroke="#888888"
-                                fontSize={10}
+                                stroke="#64748b"
+                                fontSize={11}
                                 tickLine={false}
                                 axisLine={false}
                             />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: 'hsl(var(--background))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: '8px',
+                                    backgroundColor: '#ffffff',
+                                    borderColor: '#e2e8f0',
+                                    borderRadius: '10px',
+                                    boxShadow: '0 8px 20px -4px rgba(0,0,0,0.1)',
                                     fontSize: '12px'
                                 }}
                                 formatter={(value: number, name: string) => {
@@ -98,8 +105,10 @@ export function StudentProgressChart({ userId }: { userId: string }) {
                             <Area
                                 type="monotone"
                                 dataKey="score"
-                                stroke="hsl(var(--primary))"
-                                strokeWidth={2}
+                                stroke="#059669"
+                                strokeWidth={2.5}
+                                dot={{ r: 4, fill: "#059669", stroke: "#ffffff", strokeWidth: 2 }}
+                                activeDot={{ r: 6, fill: "#047857" }}
                                 fillOpacity={1}
                                 fill="url(#colorScore)"
                             />
