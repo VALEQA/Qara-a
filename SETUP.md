@@ -14,6 +14,21 @@ First, create the database schema and tables:
 2. Navigate to **SQL Editor**
 3. Create a new query and paste the contents of `scripts/01_initial_schema.sql`
 4. Execute the query to create all tables with RLS policies
+5. Then execute `scripts/05_add_rls_policies.sql` to add the base SELECT policies
+   (users can read their own profile, institutions, semesters, and classes)
+
+> **Database files overview**
+>
+> - `scripts/01_initial_schema.sql` - base schema (enums, tables, indexes, triggers)
+> - `scripts/02_seed_test_data.sql` - seed institution, users, class, and template
+> - `scripts/03_create_test_accounts.sql` - link Supabase Auth users to the `users` table
+> - `scripts/05_add_rls_policies.sql` - base RLS SELECT policies
+> - `supabase/migrations/*.sql` - incremental migrations (gamification, leaderboard, scoring,
+>   parent portal, and RLS fixes). Apply them after the base schema, in filename order.
+>
+> The legacy `04`, `06`, `07`, `08` scripts and the generated bundles (`FULL_SETUP.sql`,
+> `FINAL_FIX_MIGRATIONS.sql`) were removed: their content is either duplicated by the files
+> above or superseded by the migrations.
 
 ## 2. Create Test Accounts in Supabase Auth
 
