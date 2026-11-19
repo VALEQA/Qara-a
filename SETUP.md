@@ -1,128 +1,181 @@
-# Mutabaah Online - Setup Guide
+# Panduan Setup — Qara-a (Mutabaah Online)
 
-## Prerequisites
+Dokumen ini menjelaskan cara menyiapkan database Supabase dan menjalankan aplikasi dari nol.
 
-- Supabase project created and connected
-- Next.js app running locally or on Vercel
-- Node.js installed (v16+)
+## Prasyarat
 
-## 1. Initialize Supabase Database
+- Project Supabase sudah dibuat (cloud atau lokal).
+- [Bun](https://bun.sh/) terpasang (disarankan), atau Node.js 18+.
+- Aplikasi berjalan lokal atau di Vercel.
 
-First, create the database schema and tables:
+## 1. Inisialisasi Database Supabase
 
-1. Go to your Supabase dashboard
-2. Navigate to **SQL Editor**
-3. Create a new query and paste the contents of `scripts/01_initial_schema.sql`
-4. Execute the query to create all tables with RLS policies
-5. Then execute `scripts/05_add_rls_policies.sql` to add the base SELECT policies
-   (users can read their own profile, institutions, semesters, and classes)
+1. Buka dashboard Supabase → **SQL Editor**.
+2. Jalankan `scripts/01_initial_schema.sql` — membuat enum, tabel, index, dan trigger dasar.
+3. Jalankan `scripts/05_add_rls_policies.sql` — menambahkan kebijakan SELECT dasar (pengguna dapat membaca
+   profilnya sendiri, institusi, semester, dan kelas).
 
-> **Database files overview**
->
-> - `scripts/01_initial_schema.sql` - base schema (enums, tables, indexes, triggers)
-> - `scripts/02_seed_test_data.sql` - seed institution, users, class, and template
-> - `scripts/03_create_test_accounts.sql` - link Supabase Auth users to the `users` table
-> - `scripts/05_add_rls_policies.sql` - base RLS SELECT policies
-> - `supabase/migrations/*.sql` - incremental migrations (gamification, leaderboard, scoring,
->   parent portal, and RLS fixes). Apply them after the base schema, in filename order.
->
-> The legacy `04`, `06`, `07`, `08` scripts and the generated bundles (`FULL_SETUP.sql`,
-> `FINAL_FIX_MIGRATIONS.sql`) were removed: their content is either duplicated by the files
-> above or superseded by the migrations.
+### Ringkasan file database
 
-## 2. Create Test Accounts in Supabase Auth
+| File | Isi |
+| --- | --- |
+| `scripts/01_initial_schema.sql` | Skema dasar: enum `user_role` / `attendance_status` / `evaluation_level`, tabel, index, trigger `updated_at`. |
+| `scripts/02_seed_test_data.sql` | Data contoh: institusi, pengguna, semester, kelas, dan template evaluasi. |
+| `scripts/03_create_test_accounts.sql` | Menghubungkan akun Supabase Auth ke tabel `users` (perlu UUID asli). |
+| `scripts/05_add_rls_policies.sql` | Kebijakan RLS SELECT dasar. |
+| `supabase/migrations/*.sql` | Migrasi incremental: gamifikasi, leaderboard, sistem poin, kolom `surah`, integrasi portal wali, dan perbaikan RLS. Dijalankan **setelah** skema dasar, berurutan sesuai nama file. |
 
-You have two options:
+Skrip lama `04`, `06`, `07`, `08` serta bundle `FULL_SETUP.sql` dan `FINAL_FIX_MIGRATIONS.sql` sudah dihapus:
+isinya duplikat dari file di atas atau sudah digantikan oleh migrasi.
 
-### Option A: Manual Setup (via Supabase Dashboard)
+### Urutan eksekusi lengkap
 
-1. Go to your Supabase project dashboard
-2. Navigate to **Authentication** → **Users**
-3. Click **Invite** and add these accounts:
+```text
+scripts/01_initial_schema.sql
+scripts/02_seed_test_data.sql          (opsional — data contoh)
+scripts/03_create_test_accounts.sql    (isi UUID dari Supabase Auth dulu)
+scripts/05_add_rls_policies.sql
+supabase/migrations/20260116141500_create_gamification_tables.sql
+supabase/migrations/20260116143000_seed_badges.sql
+supabase/migrations/20260116143500_leaderboard_schema.sql
+supabase/migrations/20260116145000_fix_rls_recursion.sql
+supabase/migrations/20260116164500_admin_badges_rls.sql
+supabase/migrations/20260116171500_guru_session_rls.sql
+supabase/migrations/20260116182000_guru_enrollment_visibility.sql
+supabase/migrations/20260116183000_fix_guru_recursion.sql
+supabase/migrations/20260116190000_seed_gamification_badges.sql
+supabase/migrations/20260116191500_evaluations_rls.sql
+supabase/migrations/20260116193000_seed_templates.sql
+supabase/migrations/20260116213000_templates_rls.sql
+supabase/migrations/20260201084500_fix_guru_attendance_rls.sql
+supabase/migrations/20260201090000_add_surah_to_evaluations.sql
+supabase/migrations/20260201091500_fix_subjects_rls.sql
+supabase/migrations/20260201100000_scoring_system.sql
+supabase/migrations/20260201110000_parent_integration.sql
+```
 
-| Email | Password | Full Name |
-|-------|----------|-----------|
-| admin@tahfidz.test | Admin123456! | Admin Tahfidz |
-| guru@tahfidz.test | Guru123456! | Ustaz Muhammad Ali |
-| murid1@tahfidz.test | Murid123456! | Ahmad Rizki |
-| murid2@tahfidz.test | Murid123456! | Fatimah Nur |
+> Migrasi RLS yang memperbaiki rekursi (`20260116145000` dan `20260116183000`) **wajib** dijalankan. Tanpa
+> keduanya, policy yang saling merujuk ke tabel `users` menyebabkan error *infinite recursion detected in
+> policy for relation*.
 
-### Option B: Automated Setup (via Script)
+## 2. Membuat Akun Uji di Supabase Auth
 
-Run this script to create accounts programmatically:
+### Opsi A — Manual (dashboard)
+
+1. Buka **Authentication → Users**.
+2. Klik **Add user** dan buat akun berikut (centang *Auto Confirm User*):
+
+| Email | Password | Nama lengkap | Peran |
+| --- | --- | --- | --- |
+| `admin@tahfidz.test` | `Admin123456!` | Admin Tahfidz | `admin` |
+| `guru@tahfidz.test` | `Guru123456!` | Ustaz Muhammad Ali | `guru` |
+| `murid1@tahfidz.test` | `Murid123456!` | Ahmad Rizki | `murid` |
+| `murid2@tahfidz.test` | `Murid123456!` | Fatimah Nur | `murid` |
+| `murid3@tahfidz.test` | `Murid123456!` | Bilal Hakim | `murid` |
+| `murid4@tahfidz.test` | `Murid123456!` | Aisha Rahman | `murid` |
+| `murid5@tahfidz.test` | `Murid123456!` | Salman Bahri | `murid` |
+
+3. Salin **UUID** setiap akun, lalu masukkan ke `scripts/03_create_test_accounts.sql`
+   (ganti placeholder `REPLACE_WITH_*_UUID`) dan eksekusi.
+
+### Opsi B — Otomatis (skrip)
 
 ```bash
 bun run setup:accounts
 ```
 
-This will create all test accounts automatically using your Supabase credentials.
+Skrip `scripts/setup-accounts.ts` membuat akun Auth admin, guru, dan murid1–murid3 memakai
+`SUPABASE_SERVICE_ROLE_KEY` dari `.env.local`. Skrip ini **tidak** menulis ke tabel `users`, jadi langkah
+penghubungan UUID di Opsi A poin 3 tetap perlu dilakukan.
 
-## 3. Seed Test Data (Optional)
+## 3. Data Uji (Opsional)
 
-To populate the database with test institutions, classes, and evaluations:
+Untuk mengisi institusi, kelas, dan evaluasi contoh:
 
-1. Go to Supabase **SQL Editor**
-2. Paste the contents of `scripts/02_seed_test_data.sql`
-3. Execute to create test data
+1. Buka **SQL Editor**.
+2. Jalankan isi `scripts/02_seed_test_data.sql`.
+
+Data yang dibuat: institusi `Tahfidz Al-Qur'an Center` (kode `TAHFIDZ-001`), pengguna untuk semua peran,
+semester, dua kelas halaqah, dan satu template evaluasi.
 
 ## 4. Environment Variables
 
-Ensure your `.env.local` has these variables set:
+Isi `.env.local` (salin dari `.env.example`):
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_anon_or_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-## 5. Run the Application
+| Variabel | Keterangan |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Anon / publishable key. Aman dipakai di browser karena tetap dibatasi RLS. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key. **Bypass RLS** — hanya untuk server dan skrip (`lib/supabase/admin.ts`, `scripts/*.ts`). Jangan pernah diekspos ke client. |
+
+> Nama variabel anon key di proyek ini adalah `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, bukan
+> `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Memakai nama lama akan membuat aplikasi gagal terhubung ke Supabase.
+
+## 5. Menjalankan Aplikasi
 
 ```bash
 bun install
 bun run dev
 ```
 
-Visit `http://localhost:3000` and use the demo credentials to login.
+Buka `http://localhost:3000` lalu login dengan akun demo.
 
-## Testing Each Role
+## Menguji Tiap Peran
 
-### Admin Account
-- **Email:** admin@tahfidz.test
-- **Password:** Admin123456!
-- **Access:** Admin dashboard for managing institution, users, and academic structure
+### Admin
+- **Email:** `admin@tahfidz.test` — **Password:** `Admin123456!`
+- **Akses:** dashboard admin untuk mengelola institusi, pengguna, struktur akademik, template evaluasi, dan
+  lencana.
 
-### Guru Account  
-- **Email:** guru@tahfidz.test
-- **Password:** Guru123456!
-- **Access:** Teacher dashboard for managing classes, sessions, and student evaluations
+### Guru
+- **Email:** `guru@tahfidz.test` — **Password:** `Guru123456!`
+- **Akses:** dashboard guru untuk mengelola kelas, sesi halaqah, absensi, dan evaluasi santri.
 
-### Student Accounts
-- **Email:** murid1@tahfidz.test (or murid2, murid3, etc.)
-- **Password:** Murid123456!
-- **Access:** Student dashboard to view evaluations and download reports
+### Santri (Murid)
+- **Email:** `murid1@tahfidz.test` (atau `murid2` … `murid5`) — **Password:** `Murid123456!`
+- **Akses:** dashboard santri untuk melihat poin, lencana, leaderboard, evaluasi, dan rapor PDF.
+
+### Wali Santri (Orang Tua)
+- Buat akun Auth dengan email apa pun, lalu set `role = 'orang_tua'` di tabel `users`.
+- Hubungkan ke santri melalui tabel `parent_student_links` (`parent_id`, `student_id`, `institution_id`).
+- **Akses:** portal wali untuk memantau kehadiran dan hafalan anak.
 
 ## Troubleshooting
 
-### "Invalid login credentials" error
+### Error "Invalid login credentials"
 
-This means the accounts don't exist in Supabase Auth yet. Follow Option A or Option B above to create them.
+Akun belum ada di Supabase Auth. Jalankan Opsi A atau Opsi B di bagian 2.
 
-### "Could not fetch user details" error
+### Error "Could not fetch user details" / "User profile not found"
 
-This means the accounts exist in Auth but not in the `users` table. Run `scripts/02_seed_test_data.sql` to populate the users table.
+Akun ada di Auth tetapi tidak ada baris dengan `id` yang sama di tabel `users`. Perbaiki lewat
+`scripts/03_create_test_accounts.sql` atau insert manual dengan UUID asli.
 
-### CORS or connection errors
+### Error "infinite recursion detected in policy"
 
-Check that:
-1. Your Supabase URL and keys are correct in `.env.local`
-2. Your Supabase project is active and running
-3. RLS policies are enabled on all tables
+Migrasi perbaikan RLS belum dijalankan. Eksekusi `20260116145000_fix_rls_recursion.sql` dan
+`20260116183000_fix_guru_recursion.sql`.
 
-## Next Steps
+### Error CORS atau koneksi
 
-Once logged in successfully:
-1. Test the Admin panel by creating new classes and evaluating templates
-2. Test the Guru panel by creating sessions and entering student evaluations
-3. Test the Murid panel by viewing evaluations and generating PDF reports
+1. Pastikan `NEXT_PUBLIC_SUPABASE_URL` dan key di `.env.local` benar.
+2. Pastikan project Supabase aktif.
+3. Pastikan RLS aktif di semua tabel dan policy untuk peran yang diuji sudah ada.
 
-For production deployment, refer to `DEPLOYMENT.md`.
+### Data tidak muncul padahal login berhasil
+
+Hampir selalu masalah RLS: policy SELECT untuk peran tersebut belum mencakup baris yang diminta. Cek log
+Supabase (Dashboard → Logs) untuk melihat policy mana yang menolak.
+
+## Langkah Selanjutnya
+
+1. Uji panel admin: buat kelas baru dan template evaluasi.
+2. Uji panel guru: buka sesi, isi absensi, input evaluasi santri.
+3. Uji panel santri: lihat evaluasi dan hasilkan rapor PDF.
+4. Untuk produksi, lanjut ke [DEPLOYMENT.md](DEPLOYMENT.md).

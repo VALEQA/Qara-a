@@ -1,88 +1,152 @@
-# Authentication Setup Guide
+# Panduan Setup Autentikasi
 
-## Understanding the Issue
+## Memahami masalahnya
 
-Your system uses **Supabase Auth** (managed authentication) linked to a **custom users table** (your application data). When you sign in:
+Sistem ini memakai **Supabase Auth** (autentikasi terkelola) yang dipasangkan dengan **tabel `users` milik
+aplikasi** (data profil dan peran). Saat pengguna login:
 
-1. Supabase Auth verifies your credentials and returns a user ID
-2. Your app queries the `users` table for the matching ID to get the role
-3. If no matching record exists, you get "User profile not found"
+1. Supabase Auth memverifikasi email & password, lalu mengembalikan **user ID (UUID)**.
+2. Aplikasi mencari baris dengan `id` yang sama di tabel `users` untuk mengambil `role` dan `institution_id`.
+3. Jika baris itu tidak ada, muncul error **"User profile not found"** dan pengguna tidak bisa masuk.
 
-## Step-by-Step Setup
+Artinya: **membuat akun di Supabase Auth saja tidak cukup.** Harus ada baris pasangannya di tabel `users`
+dengan UUID yang identik.
 
-### 1. Create Institution First (Optional but Recommended)
+## Setup langkah demi langkah
+
+### 1. Buat institusi lebih dulu (opsional, tapi disarankan)
 
 ```sql
-INSERT INTO institutions (id, name, code, email, phone, address) VALUES
-  (gen_random_uuid(), 'Tahfidz Al-Qur''an Center', 'TAHFIDZ-001', 'info@tahfidz.local', '021-1234567', 'Jakarta, Indonesia')
-  RETURNING id;
+INSERT INTO institutions (id, name, code, email, phone, address)
+VALUES (
+  gen_random_uuid(),
+  'Tahfidz Al-Qur''an Center',
+  'TAHFIDZ-001',
+  'info@tahfidz.local',
+  '021-1234567',
+  'Jakarta, Indonesia'
+)
+RETURNING id;
 ```
 
-Copy the returned UUID - this is your institution_id.
+Salin UUID yang dikembalikan — itu `institution_id` yang akan dipakai di langkah 3.
 
-### 2. Create Supabase Auth Accounts
+### 2. Buat akun di Supabase Auth
 
-Go to your Supabase dashboard:
-1. Navigate to **Authentication > Users**
-2. Click **Add User**
-3. Create an account with:
+1. Buka dashboard Supabase → **Authentication → Users**.
+2. Klik **Add user**, isi:
    - Email: `admin@tahfidz.test`
    - Password: `Admin123456!`
-4. Click the user to view its UUID (in the URL or user details)
-5. Copy this UUID
+   - Centang **Auto Confirm User** (kalau tidak, email konfirmasi akan dikirim dan login bisa gagal).
+3. Klik user tersebut untuk melihat **UUID**-nya (ada di detail user atau URL).
+4. Salin UUID tersebut.
 
-### 3. Insert Users into Database
+### 3. Masukkan profil ke tabel `users`
 
-Using the UUID from step 2, run this SQL in Supabase:
+Ganti `YOUR_UUID_HERE` dan `YOUR_INSTITUTION_UUID` dengan nilai asli, lalu jalankan di SQL Editor:
 
 ```sql
-INSERT INTO users (id, email, full_name, role, institution_id, created_at, updated_at) VALUES
-  ('YOUR_UUID_HERE', 'admin@tahfidz.test', 'Admin Tahfidz', 'admin', NULL, NOW(), NOW());
+INSERT INTO users (id, email, full_name, role, institution_id, created_at, updated_at)
+VALUES (
+  'YOUR_UUID_HERE',
+  'admin@tahfidz.test',
+  'Admin Tahfidz',
+  'admin',
+  'YOUR_INSTITUTION_UUID',
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE
+SET email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    institution_id = EXCLUDED.institution_id,
+    updated_at = NOW();
 ```
 
-### 4. Test Login
+`ON CONFLICT ... DO UPDATE` membuat perintah ini aman dijalankan berulang — kalau baris sudah ada, isinya
+diperbarui, bukan error.
 
-Now you can login with:
+### 4. Uji login
+
 - Email: `admin@tahfidz.test`
 - Password: `Admin123456!`
 
-## Full Example Setup
+Setelah login sebagai admin, kamu bisa membuat akun guru, santri, dan wali dari menu **Admin → Users**
+(atau mengulang langkah 2–3 untuk tiap peran).
+
+## Contoh lengkap
 
 ```sql
--- 1. Create institution
-INSERT INTO institutions (id, name, code, email, phone, address, created_at, updated_at) VALUES
-  ('550e8400-e29b-41d4-a716-446655440000', 'Tahfidz Al-Qur''an', 'TAHFIDZ-001', 'info@tahfidz.local', '+62-21-1234567', 'Jakarta', NOW(), NOW());
+-- 1. Buat institusi
+INSERT INTO institutions (id, name, code, email, phone, address, created_at, updated_at)
+VALUES (
+  '11111111-1111-1111-1111-111111111111',
+  'Tahfidz Al-Qur''an',
+  'TAHFIDZ-001',
+  'info@tahfidz.local',
+  '+62-21-1234567',
+  'Jakarta',
+  NOW(),
+  NOW()
+)
+ON CONFLICT (code) DO NOTHING;
 
--- 2. After creating users in Supabase Auth with UUIDs, insert them here:
-INSERT INTO users (id, email, full_name, role, institution_id, phone, address, created_at, updated_at) VALUES
-  -- Replace these UUIDs with your actual Supabase Auth UUIDs
-  ('3d79b2a3-2d2b-4db9-9c4a-ca732f3ef374', 'admin@tahfidz.test', 'Admin Tahfidz', 'admin', '550e8400-e29b-41d4-a716-446655440000', '+62-21-1111111', 'Jakarta', NOW(), NOW()),
-  ('a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6', 'guru@tahfidz.test', 'Ustaz Ali', 'guru', '550e8400-e29b-41d4-a716-446655440000', '+62-21-2222222', 'Jakarta', NOW(), NOW()),
-  ('b2c3d4e5-f6g7-48h9-i0j1-k2l3m4n5o6p7', 'murid@tahfidz.test', 'Ahmad Rizki', 'murid', '550e8400-e29b-41d4-a716-446655440000', '+62-21-3333333', 'Jakarta', NOW(), NOW());
+-- 2. Setelah akun dibuat di Supabase Auth, masukkan profilnya.
+--    Ganti ketiga UUID di bawah dengan UUID asli dari Authentication → Users.
+INSERT INTO users (id, email, full_name, role, institution_id, phone, address, created_at, updated_at)
+VALUES
+  ('AAAAAAAA-0000-0000-0000-000000000001', 'admin@tahfidz.test',  'Admin Tahfidz',       'admin',  '11111111-1111-1111-1111-111111111111', '+62-21-1111111', 'Jakarta', NOW(), NOW()),
+  ('AAAAAAAA-0000-0000-0000-000000000002', 'guru@tahfidz.test',   'Ustaz Ali',           'guru',   '11111111-1111-1111-1111-111111111111', '+62-21-2222222', 'Jakarta', NOW(), NOW()),
+  ('AAAAAAAA-0000-0000-0000-000000000003', 'murid@tahfidz.test',  'Ahmad Rizki',         'murid',  '11111111-1111-1111-1111-111111111111', '+62-21-3333333', 'Jakarta', NOW(), NOW()),
+  ('AAAAAAAA-0000-0000-0000-000000000004', 'wali@tahfidz.test',   'Bapak Ahmad',         'orang_tua', '11111111-1111-1111-1111-111111111111', '+62-21-4444444', 'Jakarta', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
 ```
 
-## Key Points
+> Nilai `AAAAAAAA-0000-…` di atas hanyalah placeholder agar formatnya valid. UUID asli harus disalin dari
+> Supabase Auth — UUID tidak bisa dikarang, karena Auth memverifikasi kecocokannya saat login.
 
-- **Institution ID**: Optional for admin, required for guru/murid
-- **UUIDs**: Must match exactly between Supabase Auth and the users table
-- **Role**: Must be exactly 'admin', 'guru', or 'murid' (lowercase)
-- **Email**: Should match what you created in Supabase Auth
+## Poin penting
+
+| Aspek | Aturan |
+| --- | --- |
+| **UUID** | Harus **sama persis** antara Supabase Auth dan tabel `users`. Ini penyebab error paling umum. |
+| **Peran (`role`)** | Salah satu dari `admin`, `guru`, `murid`, `orang_tua` (huruf kecil semua). `orang_tua` ditambahkan oleh migrasi `20260201110000_parent_integration.sql`. |
+| **`institution_id`** | Boleh `NULL` untuk admin, **wajib** untuk guru, murid, dan wali. |
+| **Email** | Sebaiknya sama dengan yang dipakai di Supabase Auth agar mudah ditelusuri. |
+| **Auto Confirm** | Akun yang belum dikonfirmasi tidak bisa login meskipun password-nya benar. |
 
 ## Troubleshooting
 
-**"User profile not found" error**
-- The user ID doesn't exist in the `users` table
-- Check that you copied the UUID correctly from Supabase Auth
-- Verify the email matches
+### Error "User profile not found"
 
-**"Cannot coerce the result to a single JSON object"**
-- The query returned 0 rows
-- Same as above - user not in users table
+- UUID akun tidak ada di tabel `users`, atau tersalin salah.
+- Cek: `SELECT id, email, role FROM users WHERE email = 'admin@tahfidz.test';`
+- Bandingkan hasilnya dengan UUID di **Authentication → Users**.
 
-**"Authentication failed"**
-- Wrong email or password
-- Account doesn't exist in Supabase Auth
-- Check capitalization (emails are case-insensitive but helpful to use lowercase)
+### Error "Cannot coerce the result to a single JSON object"
+
+- Query mengembalikan 0 baris — penyebabnya sama seperti di atas: profil belum ada di tabel `users`.
+
+### Error "Authentication failed" / "Invalid login credentials"
+
+- Email atau password salah.
+- Akun belum dibuat di Supabase Auth (baris di tabel `users` saja tidak cukup).
+- Email belum dikonfirmasi — buat ulang dengan *Auto Confirm User*, atau konfirmasi manual di dashboard.
+
+### Login berhasil tapi dashboard kosong / error 42501 (`permission denied`)
+
+- Kebijakan RLS untuk peran tersebut belum ada. Jalankan `scripts/05_add_rls_policies.sql` lalu seluruh
+  migrasi `*_rls*.sql` di `supabase/migrations/` sesuai urutan nama file.
+
+### Ingin melihat semua akun Auth sekaligus
+
+```sql
+SELECT au.id, au.email, au.email_confirmed_at, u.role, u.full_name
+FROM auth.users au
+LEFT JOIN public.users u ON u.id = au.id
+ORDER BY au.created_at;
 ```
 
-```tsx file="" isHidden
+Baris dengan `role` bernilai `NULL` adalah akun Auth yang **belum** punya profil — itulah yang perlu
+diperbaiki lebih dulu.

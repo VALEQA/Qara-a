@@ -1,74 +1,112 @@
-# Quick Start Guide - Setting Up Test Accounts
+# Panduan Cepat — Menyiapkan Akun Uji
 
-## Step 1: Create Auth Accounts in Supabase
+Panduan ini membuat empat jenis akun (admin, guru, santri, wali) yang bisa langsung dipakai login di
+lingkungan lokal.
 
-1. Go to your Supabase Dashboard
-2. Navigate to **Authentication > Users**
-3. Click **"Add user"** and create accounts with these credentials:
+> Butuh setup database dari nol? Mulai dari [SETUP.md](SETUP.md) dulu, lalu kembali ke sini.
 
-**Admin Account:**
-- Email: `admin@tahfidz.test`
-- Password: `Admin123456!`
+## Langkah 1 — Buat Akun di Supabase Auth
 
-**Teacher Account:**
-- Email: `guru@tahfidz.test`
-- Password: `Guru123456!`
+1. Buka dashboard Supabase project kamu.
+2. Masuk ke **Authentication → Users**.
+3. Klik **Add user** lalu buat akun berikut (centang *Auto Confirm User*):
 
-**Student Accounts (create all 5):**
-- `murid1@tahfidz.test` / `Murid123456!`
-- `murid2@tahfidz.test` / `Murid123456!`
-- `murid3@tahfidz.test` / `Murid123456!`
-- `murid4@tahfidz.test` / `Murid123456!`
-- `murid5@tahfidz.test` / `Murid123456!`
+| Peran | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@tahfidz.test` | `Admin123456!` |
+| Guru | `guru@tahfidz.test` | `Guru123456!` |
+| Santri 1 | `murid1@tahfidz.test` | `Murid123456!` |
+| Santri 2 | `murid2@tahfidz.test` | `Murid123456!` |
+| Santri 3 | `murid3@tahfidz.test` | `Murid123456!` |
+| Santri 4 | `murid4@tahfidz.test` | `Murid123456!` |
+| Santri 5 | `murid5@tahfidz.test` | `Murid123456!` |
 
-**Note:** After creating each account, copy the User ID (UUID) - you'll need these in Step 2.
+**Penting:** setelah tiap akun dibuat, salin **User UID (UUID)**-nya. UUID ini dibutuhkan di langkah 2 —
+tanpa pencocokan UUID, login akan gagal dengan pesan *"User profile not found"*.
 
-## Step 2: Create User Profiles
+### Alternatif: buat lewat skrip
 
-After creating the auth accounts, you need to create their profiles in your database:
+Jika `.env.local` sudah berisi `NEXT_PUBLIC_SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY`:
 
-### Option A: Using SQL (Recommended)
+```bash
+bun run setup:accounts
+```
 
-1. Open **Supabase Dashboard > SQL Editor**
-2. Run the database initialization scripts in this order:
-   - First, run `scripts/01_initial_schema.sql` (if not already done)
-   - Then, run `scripts/02_seed_test_data.sql` (this creates the institution and basic structure)
-   - Finally, run `scripts/03_create_test_accounts.sql`
+Skrip ini (`scripts/setup-accounts.ts`) hanya membuat **akun Supabase Auth** (admin, guru, murid1–murid3).
+Profil di tabel `users` tetap harus diisi di langkah 2 — skrip tidak menulis ke tabel tersebut.
 
-3. In step 3 of the SQL script, replace the UUID placeholders with the actual user IDs from Supabase Auth
+## Langkah 2 — Hubungkan ke Tabel `users`
 
-### Option B: Manual via Supabase UI
+Aplikasi menentukan peran pengguna dari tabel `users`, bukan dari metadata Supabase Auth. Jadi setiap akun Auth
+harus punya baris dengan `id` yang **sama persis**.
 
-1. Go to **Supabase Dashboard > SQL Editor**
-2. Create users manually using the template in `scripts/03_create_test_accounts.sql`
-3. Replace `REPLACE_WITH_*_UUID` with actual user IDs from step 1
+### Opsi A — Skrip SQL (disarankan)
 
-## Step 3: Test the Login
+1. Buka **Supabase → SQL Editor**.
+2. Jalankan berurutan (lewati yang sudah pernah dijalankan):
+   - `scripts/01_initial_schema.sql` — skema dasar.
+   - `scripts/02_seed_test_data.sql` — institusi, pengguna, kelas, dan template contoh.
+   - `scripts/03_create_test_accounts.sql` — penghubung akun Auth ke tabel `users`.
+3. Di `03_create_test_accounts.sql`, ganti setiap placeholder `REPLACE_WITH_*_UUID` dengan UUID asli dari
+   langkah 1, lalu eksekusi.
 
-1. Go to your app at `http://localhost:3000` (or your Vercel deployment)
-2. Click the "Demo Credentials for Testing" section
-3. Click any demo account to auto-fill the email and password
-4. Click **Login**
-5. (Optional) Run locally with: `bun run dev`
+### Opsi B — Manual lewat SQL Editor
 
-You should be redirected to the appropriate dashboard based on your role.
+```sql
+INSERT INTO users (id, institution_id, email, full_name, role, created_at, updated_at)
+VALUES (
+  'UUID-DARI-SUPABASE-AUTH',
+  (SELECT id FROM institutions LIMIT 1),
+  'admin@tahfidz.test',
+  'Admin Tahfidz',
+  'admin',
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO NOTHING;
+```
+
+Ulangi untuk setiap akun dengan `role` yang sesuai: `admin`, `guru`, `murid`, atau `orang_tua`.
+
+> **Catatan:** `02_seed_test_data.sql` mengisi tabel `users` dengan UUID contoh yang sudah ditentukan
+> (`22222222-…` dan seterusnya). UUID tersebut **tidak akan cocok** dengan UUID Supabase Auth kamu, sehingga
+> baris dari seed itu harus diperbarui — inilah fungsi langkah 3 di atas. Kalau ragu, hapus baris seed tersebut
+> lalu masukkan ulang dengan UUID asli.
+
+## Langkah 3 — Uji Login
+
+1. Jalankan aplikasi: `bun run dev`
+2. Buka `http://localhost:3000`
+3. Klik tombol **"Demo Credentials for Testing"** di halaman login untuk mengisi email & password otomatis
+   (kredensial demo di-hardcode di `app/auth/login/page.tsx`, hanya berisi admin, guru, murid1, dan murid2).
+4. Klik **Login**.
+
+Kamu akan diarahkan otomatis sesuai peran:
+
+| Peran | Halaman tujuan |
+| --- | --- |
+| `admin` | `/admin/dashboard` |
+| `guru` | `/guru/dashboard` |
+| `murid` | `/murid/dashboard` |
+| `orang_tua` | `/orang_tua/dashboard` |
 
 ## Troubleshooting
 
-### "Could not fetch user details" error
-- This means the auth account exists but the user profile in the database is missing
-- Make sure you ran `scripts/03_create_test_accounts.sql` with the correct UUIDs
+| Gejala | Penyebab & solusi |
+| --- | --- |
+| **"Could not fetch user details"** / **"User profile not found"** | Akun Auth ada, tapi belum ada baris dengan `id` yang sama di tabel `users`. Ulangi langkah 2 dengan UUID yang benar. |
+| **"Invalid login credentials"** | Email/password tidak cocok, atau akun belum dibuat di **Authentication → Users**. Membuat baris di tabel `users` saja tidak cukup. |
+| **"Cannot coerce the result to a single JSON object"** | Query ke tabel `users` mengembalikan 0 baris — sama seperti kasus di atas. |
+| **"No institution found"** | Belum ada data institusi. Jalankan `scripts/02_seed_test_data.sql`. |
+| Halaman kosong / data tidak muncul padahal login berhasil | Kebijakan RLS belum lengkap. Jalankan `scripts/05_add_rls_policies.sql` lalu migrasi `*_rls*.sql` di `supabase/migrations/`. |
+| Error `permission denied` saat menulis data | `SUPABASE_SERVICE_ROLE_KEY` belum diisi di `.env.local`, atau policy INSERT/UPDATE untuk peran tersebut belum ada. |
 
-### "Invalid login credentials"
-- Check that the email and password match exactly what you created in Supabase Auth
-- Make sure you created the auth accounts (not just the database records)
+## Langkah Selanjutnya
 
-### "No institution found"
-- Run `scripts/02_seed_test_data.sql` first to create the institution
+1. Login sebagai **admin** → kelola pengguna, semester, kelas, dan template evaluasi.
+2. Login sebagai **guru** → buka sesi halaqah, isi absensi, dan nilai setoran hafalan.
+3. Login sebagai **murid** → lihat poin, lencana, leaderboard, dan unduh rapor PDF.
+4. Login sebagai **orang_tua** → pantau progres anak (perlu baris di `parent_student_links`, lihat
+   migrasi `20260201110000_parent_integration.sql`).
 
-## Next Steps
-
-Once you've tested all three roles successfully:
-1. Explore the Admin Dashboard to manage users and academic structure
-2. Use the Guru account to create sessions and evaluations
-3. Use any Murid account to view evaluations and reports
+Alur uji fitur absensi dan input hafalan secara rinci ada di [TESTING_GUIDE_ID.md](TESTING_GUIDE_ID.md).

@@ -173,7 +173,7 @@ components/
   gamification/               Kartu & daftar lencana
   analytics/                  Grafik progres santri (Recharts)
 lib/
-  supabase/                   Client browser, server, admin (service role), proxy sesi
+  supabase/                   Client browser, server, dan admin (service role)
   gamification.ts             Aturan pemberian lencana
   auth-utils.ts               Helper otorisasi & peran
 scripts/                      SQL setup + skrip diagnostik/seed berbasis Node
@@ -236,7 +236,14 @@ Urutan eksekusi di **Supabase SQL Editor**:
 > isinya duplikat dari file di atas atau sudah digantikan oleh migrasi. Detail lengkap ada di [SETUP.md](SETUP.md).
 
 Setelah skema siap, buat akun di **Supabase → Authentication → Users**, lalu cocokkan UUID-nya di tabel `users`
-(panduan langkah demi langkah: [AUTH_SETUP.md](AUTH_SETUP.md)).
+(panduan langkah demi langkah: [AUTH_SETUP.md](AUTH_SETUP.md)). Pembuatan akun Auth bisa dibantu skrip:
+
+```bash
+bun run setup:accounts   # membuat akun Auth admin, guru, murid1–murid3
+```
+
+Skrip ini hanya membuat akun di Supabase Auth — profil di tabel `users` tetap harus diisi manual dengan UUID
+yang sesuai.
 
 ## Akun Demo
 
@@ -303,10 +310,10 @@ Catatan keamanan: header `X-Content-Type-Options`, `X-Frame-Options: DENY`, `X-X
 
 | File | Isi |
 | --- | --- |
-| [QUICK_START.md](QUICK_START.md) | Setup cepat dari nol sampai login. |
-| [SETUP.md](SETUP.md) | Detail setup database, akun Auth, dan ringkasan tiap file SQL. |
-| [AUTH_SETUP.md](AUTH_SETUP.md) | Menghubungkan Supabase Auth dengan tabel `users`, plus troubleshooting. |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment ke Vercel + Supabase untuk produksi. |
+| [QUICK_START.md](QUICK_START.md) | Panduan cepat membuat akun uji sampai bisa login, plus tabel troubleshooting. |
+| [SETUP.md](SETUP.md) | Setup database lengkap: urutan eksekusi SQL + migrasi, akun Auth, env vars, troubleshooting per peran. |
+| [AUTH_SETUP.md](AUTH_SETUP.md) | Menghubungkan Supabase Auth dengan tabel `users` (termasuk query pengecekan UUID). |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment ke Vercel + Supabase, checklist keamanan, dan troubleshooting produksi. |
 | [TESTING_GUIDE_ID.md](TESTING_GUIDE_ID.md) | Panduan uji alur absensi dan input hafalan (Bahasa Indonesia). |
 
 ## Lisensi

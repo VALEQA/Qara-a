@@ -1,178 +1,212 @@
-# Deployment Guide - Mutabaah Online
+# Panduan Deployment — Qara-a (Mutabaah Online)
 
-## Overview
+## Ringkasan
 
-Mutabaah Online is a production-ready Learning Management System for Tahfidz institutions. This guide covers deployment to Vercel with Supabase.
+Qara-a adalah Learning Management System untuk lembaga tahfidz yang siap dipakai di produksi. Stack
+produksinya: **Next.js 16 di Vercel + Supabase** (PostgreSQL, Auth, dan Row Level Security).
 
-## Prerequisites
+## Prasyarat
 
-- Vercel Account (vercel.com)
-- Supabase Project (supabase.com)
-- PostgreSQL database (via Supabase)
-- Node.js 18+ (for local development)
+- Akun [Vercel](https://vercel.com)
+- Project [Supabase](https://supabase.com) (PostgreSQL sudah termasuk)
+- Repository di GitHub/GitLab
+- Bun (disarankan) atau Node.js 18+ untuk development lokal
 
-## Step 1: Database Setup
+## Langkah 1 — Setup Database
 
-### 1.1 Create Supabase Project
+### 1.1 Buat project Supabase
 
-1. Visit supabase.com and create a new project
-2. Save your Project URL and Anon Key
-3. Run the database migration scripts:
-   - Execute `/scripts/01_initial_schema.sql` in Supabase SQL Editor
+1. Buat project baru di supabase.com.
+2. Catat **Project URL** dan **anon/publishable key** (Settings → API).
+3. Jalankan skema database lewat **SQL Editor**:
 
-### 1.2 Configure RLS Policies
+```text
+scripts/01_initial_schema.sql
+scripts/05_add_rls_policies.sql
+supabase/migrations/*.sql        (berurutan sesuai nama file)
+```
 
-The schema includes basic RLS setup. For production, implement detailed policies:
+Urutan lengkap beserta nama tiap file ada di [SETUP.md](SETUP.md). Migrasi **wajib** dijalankan setelah skema
+dasar — beberapa fitur (gamifikasi, sistem poin, portal wali) tidak akan berfungsi tanpanya.
+
+### 1.2 Terapkan kebijakan RLS
+
+Skema dasar hanya berisi policy minimal. Seluruh policy produksi ada di file migrasi `*_rls*.sql`. Contoh pola
+yang dipakai:
 
 ```sql
--- Example: Users can only see their own evaluations
+-- Santri hanya bisa melihat evaluasinya sendiri
 CREATE POLICY "Users can view own evaluations" ON evaluations
   FOR SELECT USING (auth.uid() = user_id);
 ```
 
-## Step 2: Environment Variables
+Prinsipnya: **setiap tabel ber-RLS dan punya policy eksplisit per peran.** Jangan mengandalkan penyaringan di
+UI — RLS adalah lapisan keamanan yang sebenarnya.
 
-### 2.1 Copy `.env.example` to `.env.local`
+> Perhatikan dua migrasi perbaikan rekursi (`20260116145000_fix_rls_recursion.sql`,
+> `20260116183000_fix_guru_recursion.sql`). Policy yang saling merujuk ke tabel `users` tanpa keduanya akan
+> memicu error *infinite recursion detected in policy*.
+
+### 1.3 Buat akun admin pertama
+
+Ikuti [AUTH_SETUP.md](AUTH_SETUP.md): buat akun di **Authentication → Users**, lalu masukkan profilnya ke tabel
+`users` dengan UUID yang sama dan `role = 'admin'`.
+
+## Langkah 2 — Environment Variables
+
+### 2.1 Salin template
 
 ```bash
 cp .env.example .env.local
 ```
 
-### 2.2 Fill in Supabase Credentials
+### 2.2 Isi kredensial Supabase
 
-Get these from your Supabase project settings:
+Aplikasi hanya membaca **tiga** variabel berikut:
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Your project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon public key
-- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (keep secret!)
-- `SUPABASE_JWT_SECRET` - JWT secret
+| Variabel | Sumber | Catatan |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Settings → API → Project URL | Boleh terekspos ke browser. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Settings → API → anon / publishable key | Boleh terekspos; akses tetap dibatasi RLS. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API → service_role key | **Rahasia.** Bypass RLS. Hanya untuk server & skrip. |
 
-## Step 3: Local Testing
+> Nama variabel anon key di proyek ini adalah `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — bukan
+> `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Memakai nama lama akan membuat aplikasi gagal terhubung.
+
+## Langkah 3 — Uji Lokal
 
 ```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Open http://localhost:3000
+bun install
+bun run dev          # http://localhost:3000
 ```
 
-Test all user roles:
-- Admin: Institution management
-- Guru: Session & evaluation creation
-- Murid: View evaluations and reports
+Sebelum deploy, pastikan keempat peran berfungsi:
 
-## Step 4: Deploy to Vercel
+- **Admin** — kelola institusi, pengguna, kelas, dan template evaluasi.
+- **Guru** — buka sesi, isi absensi, input evaluasi santri.
+- **Santri** — lihat poin, lencana, leaderboard, dan unduh rapor PDF.
+- **Wali** — pantau progres anak.
 
-### 4.1 Connect Repository
+Build produksi bisa diuji lebih dulu:
 
-1. Push code to GitHub/GitLab
-2. Visit vercel.com/new
-3. Select your repository
-4. Vercel auto-detects Next.js
-
-### 4.2 Add Environment Variables
-
-In Vercel project settings → Environment Variables, add:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_JWT_SECRET=your_jwt_secret
-POSTGRES_URL=your_postgres_url
+```bash
+bun run build && bun run start
 ```
 
-### 4.3 Configure Production Redirect
+## Langkah 4 — Deploy ke Vercel
 
-Set for Auth redirects:
+### 4.1 Hubungkan repository
 
+1. Push kode ke GitHub/GitLab.
+2. Buka vercel.com/new lalu pilih repository tersebut.
+3. Vercel mendeteksi Next.js secara otomatis (framework preset: **Next.js**, build command `next build`).
+
+### 4.2 Tambahkan environment variables
+
+Di **Project Settings → Environment Variables**, tambahkan ketiga variabel dari Langkah 2 untuk environment
+*Production* (dan *Preview* bila ingin preview deployment berfungsi):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<project-id>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 ```
-NEXT_PUBLIC_SUPABASE_REDIRECT_URL=https://yourdomain.vercel.app
-```
 
-### 4.4 Deploy
+Tandai `SUPABASE_SERVICE_ROLE_KEY` sebagai **Sensitive** agar tidak terbaca di log build.
 
-Click "Deploy" and Vercel builds and deploys automatically.
+### 4.3 Deploy
 
-## Step 5: Post-Deployment
+Klik **Deploy**. Setelah selesai, Vercel memberi domain `https://<project>.vercel.app`.
 
-### 5.1 Verify Deployment
+## Langkah 5 — Setelah Deploy
 
-1. Visit your Vercel domain
-2. Test login with test account
-3. Verify all role-based dashboards work
+### 5.1 Verifikasi
 
-### 5.2 Setup Initial Data
+1. Buka domain Vercel.
+2. Login dengan akun admin produksi.
+3. Uji keempat dashboard sesuai peran.
+4. Pastikan tidak ada error 500 di **Vercel → Deployments → Functions → Logs**.
 
-1. Login as admin
-2. Create institution
-3. Add semesters and classes
-4. Invite teachers and students
+### 5.2 Setup data awal
 
-### 5.3 Configure Custom Domain
+1. Login sebagai admin.
+2. Buat institusi (nama, kode, kontak, logo).
+3. Tambahkan semester dan kelas halaqah.
+4. Buat akun guru, santri, dan wali — untuk tiap akun, buat dulu di Supabase Auth lalu masukkan profilnya ke
+   tabel `users` (lihat [AUTH_SETUP.md](AUTH_SETUP.md)).
 
-In Vercel Settings → Domains, add your custom domain and configure DNS.
+### 5.3 Domain kustom
 
-## Security Checklist
+Di **Vercel → Settings → Domains**, tambahkan domain lalu ikuti instruksi DNS (biasanya record `A` atau
+`CNAME`).
 
-- [ ] Environment variables set in Vercel (not in code)
-- [ ] RLS policies enabled in Supabase
-- [ ] Service role key stored securely
-- [ ] HTTPS enabled (automatic with Vercel)
-- [ ] Redirect URLs configured correctly
-- [ ] Database backups enabled in Supabase
-- [ ] Rate limiting configured if needed
+## Checklist keamanan
+
+- [ ] Environment variables diisi di dashboard Vercel, tidak pernah di-commit ke repo.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` hanya ada di server (tidak pernah dipakai di komponen client).
+- [ ] RLS aktif di **semua** tabel dan tiap peran punya policy eksplisit.
+- [ ] Akun demo (`admin@tahfidz.test`, dst.) dihapus atau password-nya diganti di produksi.
+- [ ] *Auto Confirm* dimatikan bila ingin verifikasi email wajib untuk pengguna baru.
+- [ ] HTTPS aktif (otomatis di Vercel).
+- [ ] Backup harian Supabase diaktifkan (Settings → Database → Backups).
+- [ ] Rate limiting dipertimbangkan untuk endpoint publik seperti `/api/reports/generate-pdf`.
+
+Header keamanan sudah diset di `next.config.mjs` dan berlaku untuk semua route:
+
+| Header | Nilai |
+| --- | --- |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
 
 ## Troubleshooting
 
-### Auth Not Working
+### Autentikasi tidak berfungsi
 
-1. Check `NEXT_PUBLIC_SUPABASE_URL` is correct
-2. Verify Anon Key is public (not service role)
-3. Ensure middleware is processing requests
+1. Pastikan `NEXT_PUBLIC_SUPABASE_URL` benar dan tidak ada garis miring berlebih di akhir.
+2. Pastikan key yang dipakai adalah anon/publishable, bukan service role, untuk variabel `NEXT_PUBLIC_*`.
+3. Cek apakah akun sudah dikonfirmasi di Supabase Auth.
 
-### Database Connection Errors
+### Error koneksi database
 
-1. Verify `POSTGRES_URL` is set
-2. Check database is running in Supabase
-3. Test connection directly if possible
+1. Pastikan project Supabase tidak sedang *paused* (paket gratis pause setelah lama tidak aktif).
+2. Uji dari SQL Editor Supabase — kalau di sana jalan, masalahnya di kredensial aplikasi.
 
-### Evaluations Not Saving
+### Evaluasi / absensi gagal disimpan
 
-1. Check RLS policies allow inserts
-2. Verify user_id is being set correctly
-3. Check database logs in Supabase
+1. Cek policy INSERT/UPDATE untuk peran tersebut — pesan `permission denied for table ...` menandakan RLS.
+2. Pastikan `user_id` yang dikirim sesuai pengguna yang login (`auth.uid()`).
+3. Periksa log Supabase (Dashboard → Logs → API/Postgres).
 
-## Performance Optimization
+### Error "infinite recursion detected in policy"
 
-1. **Caching**: Leverage Next.js ISR/caching headers
-2. **Images**: Use Vercel Image Optimization
-3. **Database**: Add indexes to frequently queried fields
-4. **Analytics**: Monitor with Vercel Analytics
+Migrasi perbaikan RLS belum dijalankan. Eksekusi `20260116145000_fix_rls_recursion.sql` dan
+`20260116183000_fix_guru_recursion.sql`.
 
-## Monitoring & Maintenance
+### Rapor PDF gagal dibuat
 
-1. **Vercel Dashboard**: Monitor function execution, errors
-2. **Supabase Dashboard**: Check database health, RLS logs
-3. **Error Tracking**: Implement Sentry for production errors
-4. **Regular Backups**: Enable daily backups in Supabase
+Endpoint `app/api/reports/generate-pdf/route.ts` membutuhkan sesi login yang valid dan akses baca ke data
+santri serta institusi. Kalau balasannya 404 *"User not found"*, periksa kembali pemetaan UUID di tabel `users`.
 
-## Support & Updates
+## Optimasi performa
 
-- GitHub Issues: For bugs and feature requests
-- Documentation: See README.md for system overview
-- Support: Contact your Supabase support for database issues
+1. **Caching** — manfaatkan cache bawaan Next.js App Router untuk halaman yang datanya jarang berubah.
+2. **Gambar** — `images.unoptimized` diset `true` di `next.config.mjs`, jadi optimasi gambar Vercel tidak
+   dipakai; gunakan aset yang sudah dikompres (misalnya ikon PWA di `public/`).
+3. **Database** — pastikan kolom yang sering difilter (`user_id`, `class_id`, `session_id`) sudah ter-index;
+   sebagian besar sudah dibuat oleh skema awal dan migrasi.
+4. **Bundle** — React Compiler aktif (`reactCompiler: true`), biarkan default-nya kecuali ada masalah build.
 
-## Version History
+## Monitoring & perawatan
 
-- v1.0.0 (2025-01-01): Initial release
-  - Multi-role authentication
-  - Admin dashboard for institution management
-  - Guru panel for session and evaluation management
-  - Murid panel for viewing evaluations and reports
-  - PDF report generation
-  - Role-based access control
-`
+1. **Vercel** — pantau eksekusi function, error rate, dan waktu build.
+2. **Supabase** — pantau kesehatan database, koneksi aktif, dan log RLS.
+3. **Error tracking** — pertimbangkan Sentry untuk menangkap error runtime di produksi.
+4. **Backup** — aktifkan backup harian dan uji proses restore secara berkala.
+
+## Dukungan
+
+- Bug & permintaan fitur: buka issue di repository GitHub.
+- Gambaran sistem: [README.md](README.md).
+- Setup database & akun: [SETUP.md](SETUP.md) dan [AUTH_SETUP.md](AUTH_SETUP.md).
