@@ -106,6 +106,27 @@ ON CONFLICT (id) DO NOTHING;
 > Nilai `AAAAAAAA-0000-…` di atas hanyalah placeholder agar formatnya valid. UUID asli harus disalin dari
 > Supabase Auth — UUID tidak bisa dikarang, karena Auth memverifikasi kecocokannya saat login.
 
+## Cara otomatis (disarankan)
+
+Semua langkah di atas bisa dikerjakan satu perintah, asalkan `.env.local` berisi `NEXT_PUBLIC_SUPABASE_URL`
+dan `SUPABASE_SERVICE_ROLE_KEY`:
+
+```bash
+bun run setup:accounts
+```
+
+`scripts/setup-accounts.ts` akan:
+
+1. membuat institusi `TAHFIDZ-001` bila belum ada;
+2. membuat akun Auth (atau memakai yang sudah ada berdasarkan email) — admin, guru, murid1–murid5, wali;
+3. menulis profil ke `users` memakai UUID asli dari Auth;
+4. menautkan wali ke `murid1` di `parent_student_links`.
+
+Skrip ini idempoten, jadi aman dijalankan berulang. Satu kasus khusus: kalau `users` sudah berisi email yang
+sama dengan UUID berbeda (sisa `scripts/02_seed_test_data.sql`), skrip tidak menimpanya dan mencetak SQL
+pembersihnya. Pakai `bun run setup:accounts --force` bila ingin skrip yang menghapus baris placeholder —
+penghapusan itu ikut menghapus data anak yang mereferensikannya lewat `ON DELETE CASCADE`.
+
 ## Poin penting
 
 | Aspek | Aturan |

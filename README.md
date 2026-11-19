@@ -239,11 +239,12 @@ Setelah skema siap, buat akun di **Supabase → Authentication → Users**, lalu
 (panduan langkah demi langkah: [AUTH_SETUP.md](AUTH_SETUP.md)). Pembuatan akun Auth bisa dibantu skrip:
 
 ```bash
-bun run setup:accounts   # membuat akun Auth admin, guru, murid1–murid3
+bun run setup:accounts   # akun Auth + profil users + institusi + tautan wali
 ```
 
-Skrip ini hanya membuat akun di Supabase Auth — profil di tabel `users` tetap harus diisi manual dengan UUID
-yang sesuai.
+Skrip ini mengisi tabel `users` memakai UUID asli dari Auth, jadi tidak ada penyalinan UUID manual. Kalau
+sebuah email sudah ada di `users` dengan UUID berbeda, skrip melaporkannya (dan `--force` menghapus baris
+placeholder tersebut) — lihat [SETUP.md](SETUP.md).
 
 ## Akun Demo
 

@@ -32,8 +32,15 @@ Jika `.env.local` sudah berisi `NEXT_PUBLIC_SUPABASE_URL` dan `SUPABASE_SERVICE_
 bun run setup:accounts
 ```
 
-Skrip ini (`scripts/setup-accounts.ts`) hanya membuat **akun Supabase Auth** (admin, guru, murid1–murid3).
-Profil di tabel `users` tetap harus diisi di langkah 2 — skrip tidak menulis ke tabel tersebut.
+Skrip ini mengerjakan langkah 1 **dan** langkah 2 sekaligus: membuat akun Auth (admin, guru, murid1–murid5,
+satu akun wali), menulis profilnya ke tabel `users` dengan UUID asli, membuat institusi `TAHFIDZ-001` bila
+belum ada, dan menautkan wali ke `murid1`. Kalau semua berhasil, kamu bisa langsung melompat ke langkah 3.
+
+Kalau tabel `users` sudah berisi email yang sama dengan UUID berbeda (sisa
+`scripts/02_seed_test_data.sql`), skrip melaporkannya dan mencetak SQL pembersihnya. Jalankan
+`bun run setup:accounts --force` kalau ingin skrip yang menghapus baris placeholder itu — baca dulu
+peringatan di [SETUP.md](SETUP.md#2-membuat-akun-uji-di-supabase-auth) karena penghapusan ikut menghapus
+data anak yang mereferensikannya.
 
 ## Langkah 2 — Hubungkan ke Tabel `users`
 

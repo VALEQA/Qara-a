@@ -84,9 +84,27 @@ supabase/migrations/20260201110000_parent_integration.sql
 bun run setup:accounts
 ```
 
-Skrip `scripts/setup-accounts.ts` membuat akun Auth admin, guru, dan murid1–murid3 memakai
-`SUPABASE_SERVICE_ROLE_KEY` dari `.env.local`. Skrip ini **tidak** menulis ke tabel `users`, jadi langkah
-penghubungan UUID di Opsi A poin 3 tetap perlu dilakukan.
+Skrip `scripts/setup-accounts.ts` melakukan semuanya sekaligus memakai `SUPABASE_SERVICE_ROLE_KEY` dari
+`.env.local`:
+
+1. Membuat institusi `TAHFIDZ-001` bila belum ada.
+2. Membuat akun di Supabase Auth (atau memakai yang sudah ada, dicari lewat email) — admin, guru,
+   murid1–murid5, dan satu akun wali.
+3. Menulis profil pasangannya ke tabel `users` memakai **UUID asli** dari Auth, jadi tidak perlu menyalin
+   UUID manual.
+4. Menautkan akun wali ke `murid1` lewat `parent_student_links`.
+
+Skrip bersifat idempoten: dijalankan ulang akan memperbarui baris yang sudah ada, bukan menduplikasi.
+
+```bash
+bun run setup:accounts --force   # kalau ada baris users dengan email sama tapi UUID berbeda
+```
+
+Kalau tabel `users` sudah berisi email yang sama dengan UUID lain (biasanya sisa
+`scripts/02_seed_test_data.sql`), skrip berhenti menyentuh akun itu dan mencetak perintah SQL untuk
+membersihkannya. Flag `--force` menghapus baris placeholder tersebut — **hati-hati**: data anak yang
+mereferensikannya (`class_enrollments`, `evaluations`, `attendance_records`) ikut terhapus lewat
+`ON DELETE CASCADE`. Di database yang masih bersih, cukup jalankan skrip ini **sebelum** seed data.
 
 ## 3. Data Uji (Opsional)
 
